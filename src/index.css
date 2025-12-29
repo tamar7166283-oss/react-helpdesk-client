@@ -84,3 +84,96 @@ body {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
+
+/* SweetAlert2 Custom Styles */
+/* 
+  z-index hierarchy:
+  - MUI AppBar (Header): 1100
+  - SweetAlert2 backdrop: 9999
+  - SweetAlert2 container & popups: 10000+
+*/
+.swal2-container {
+  z-index: 10000 !important; /* מעל הכל במערכת */
+}
+
+.swal-rtl {
+  font-family: 'Roboto', 'Segoe UI', 'Arial', sans-serif !important;
+  direction: rtl !important;
+  text-align: right !important;
+  z-index: 10001 !important;
+}
+
+.swal-rtl .swal2-title {
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  color: #2d3748 !important;
+}
+
+.swal-rtl .swal2-html-container {
+  text-align: right !important;
+  font-size: 1rem !important;
+  color: #4a5568 !important;
+}
+
+.swal-rtl .swal2-confirm {
+  border-radius: 8px !important;
+  padding: 10px 24px !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  transition: all 0.3s ease !important;
+}
+
+.swal-rtl .swal2-confirm:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3) !important;
+}
+
+.swal-rtl .swal2-cancel {
+  border-radius: 8px !important;
+  padding: 10px 24px !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+}
+
+/* SweetAlert2 Toast Styles */
+.swal-rtl-toast {
+  font-family: 'Roboto', 'Segoe UI', 'Arial', sans-serif !important;
+  direction: rtl !important;
+  text-align: right !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  z-index: 10001 !important;
+}
+
+.swal-rtl-toast .swal2-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #2d3748 !important;
+}
+
+.swal-rtl-toast .swal2-html-container {
+  font-size: 0.875rem !important;
+  color: #718096 !important;
+}
+
+/* פס התקדמות */
+.swal2-timer-progress-bar {
+  background: linear-gradient(90deg, #2e7d32 0%, #4caf50 100%) !important;
+  height: 5px !important;
+}
+
+/* רקע פס ההתקדמות */
+.swal2-popup .swal2-timer-progress-bar-container {
+  background: rgba(46, 125, 50, 0.15) !important;
+}
+
+/* Backdrop - הרקע המעומעם */
+.swal2-backdrop-show {
+  z-index: 9999 !important;
+}
+
+/* הקונטיינר של ה-popup עצמו */
+.swal2-popup {
+  z-index: 10001 !important;
+}
+

@@ -1,4 +1,4 @@
-import {type CreateTicketDto, type Ticket, type TicketStatus } from "../types/tickets";
+import {type CreateTicketDto, type Ticket, type TicketPriority, type TicketStatus } from "../types/tickets";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import ticketService from "../services/ticketService";
 import {logout} from './authSlice';
@@ -8,8 +8,10 @@ interface TicketsState {
     selectedTicket: Ticket | null;
     error: string | null;
     loading: boolean;
+    priorityLoading: boolean;
     statusLoading: boolean;
     updateLoading: boolean;
+    priorities: TicketPriority[];
     statuses: TicketStatus[];
 }
 
@@ -20,6 +22,8 @@ const initialState: TicketsState = {
     loading:false,
     statusLoading:false,
     updateLoading:false,
+    priorityLoading:false,
+    priorities: [],
     statuses:[]       
 };
 
@@ -44,15 +48,22 @@ export const updateTicket = createAsyncThunk('tickets/update', async ({id, data}
 });
 
 export const fetchStatuses = createAsyncThunk('tickets/fetchStatuses', async () => {
-    console.log("Fetching statuses...");
     const statuses = await ticketService.fetchStatuses();
     return statuses;
+});
+
+export const fetchPriorities = createAsyncThunk('tickets/fetchPriorities', async () => {
+    const priorities = await ticketService.fetchPriorities();
+    return priorities;
 });
 
 const TicketSlice = createSlice({
     name: 'tickets',
     initialState,
     reducers: {
+        clearError: (state) => {
+            state.error = null;
+        }
     },
     extraReducers: (builder) => {
         builder
@@ -125,8 +136,21 @@ const TicketSlice = createSlice({
             .addCase(fetchStatuses.rejected, (state, action) => {
                 state.statusLoading = false;
                 state.error = action.error.message || "Failed to fetch statuses";
+            })
+            .addCase(fetchPriorities.pending, (state) => {
+                state.priorityLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchPriorities.fulfilled, (state, action) => {
+                state.priorityLoading = false;
+                state.priorities = action.payload;
+            })
+            .addCase(fetchPriorities.rejected, (state, action) => {
+                state.priorityLoading = false;
+                state.error = action.error.message || "Failed to fetch priorities";
             });
     }
 });
 
+export const { clearError } = TicketSlice.actions;
 export default TicketSlice.reducer;

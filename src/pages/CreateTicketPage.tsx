@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {useDispatch, useSelector} from 'react-redux';
 import {type AppDispatch } from '../store';
 import type { RootState } from '../store';
+import { showSuccessToast, showErrorAlert } from '../utils/sweetAlertUtils';
 import {
     Box,
     Container,
@@ -12,110 +13,78 @@ import {
     Typography,
     TextField,
     Button,
-    Stack,
     Alert,
+    Stack,
     CircularProgress
 } from '@mui/material';
 import {
-    ConfirmationNumber as TicketIcon,
-    Send as SendIcon,
+    AddCircleOutline as AddIcon,
+    Subject as SubjectIcon,
     Description as DescriptionIcon
 } from '@mui/icons-material';
-import Swal from 'sweetalert2';
+
 export interface TicketFormValue {
     subject: string;
     description: string;
 }
 
 export default function CreateTicketPage() {
-    const {register, handleSubmit, formState: { errors }, reset} = useForm<TicketFormValue>();
+    const {register, handleSubmit, formState: { errors }} = useForm<TicketFormValue>();
     const {loading, error} = useSelector((state: RootState) => state.tickets);
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
 
-    const onSubmit = async (data: TicketFormValue) => {
-        const finalData: CreateTicketDto = { 
-            status_id: 1,
-            priority_id: 1,
-            assigned_to: null,
-            ...data
-        };
+const onSubmit=async (data: TicketFormValue) => {
+    const finalData: CreateTicketDto = { 
+        status_id: 1,
+        priority_id: 1,
+        assigned_to: null,
+        ...data};
+    
+     const result = await dispatch(createTicket(finalData));
+     if (createTicket.rejected.match(result)) {
+        showErrorAlert('שגיאה ביצירת פניה', 'אירעה שגיאה ביצירת הפניה. אנא נסה שוב.');
+    }
+    if (createTicket.fulfilled.match(result)) {
+        showSuccessToast('פניה נשלחה בהצלחה!', 'הפניה שלך התקבלה ותטופל בהקדם');
         
-        try {
-            await dispatch(createTicket(finalData)).unwrap();
-            
-            await Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'הטיקט נוצר בהצלחה!',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-            
-            reset();
+        // המתן רגע ואז נווט
+        setTimeout(() => {
             navigate("/tickets");
-        } catch (err) {
-            await Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'error',
-                title: 'שגיאה ביצירת הטיקט',
-                text: err instanceof Error ? err.message : 'אנא נסה שוב',
-                showConfirmButton: false,
-                timer: 4000,
-                timerProgressBar: true
-            });
-        }
-    };
-
+        }, 1500);
+    }
+};
     return (
-        <Box 
-            sx={{ 
-                bgcolor: 'background.default', 
-                minHeight: '100vh',
-                py: 6,
-                backgroundImage: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)'
-            }}
-        >
-            <Container maxWidth="md">
-                <Paper 
-                    elevation={6} 
-                    sx={{ 
-                        p: { xs: 3, md: 5 }, 
-                        borderRadius: 4,
-                        background: 'linear-gradient(145deg, #ffffff 0%, #f5f7fa 100%)'
-                    }}
-                >
+        <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3 }}>
+            <Container maxWidth="sm">
+                <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
                     {/* Header */}
-                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+                    <Box sx={{ mb: 3, textAlign: 'center' }}>
                         <Box
                             sx={{
-                                bgcolor: 'primary.main',
-                                color: 'white',
-                                width: 60,
-                                height: 60,
-                                borderRadius: 3,
-                                display: 'flex',
+                                display: 'inline-flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)'
+                                width: 56,
+                                height: 56,
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                mb: 1.5,
+                                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.3)'
                             }}
                         >
-                            <TicketIcon sx={{ fontSize: 36 }} />
+                            <AddIcon sx={{ fontSize: 32 }} />
                         </Box>
-                        <Box>
-                            <Typography variant="h4" fontWeight={700} color="text.primary">
-                                פתיחת טיקט חדש
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                מלא את הפרטים למטה ונחזור אליך בהקדם
-                            </Typography>
-                        </Box>
-                    </Stack>
+                        <Typography variant="h5" fontWeight={700} color="primary" gutterBottom>
+                            צור פניה חדשה
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            מלא את הפרטים למעקב אחר הבעיה שלך
+                        </Typography>
+                    </Box>
 
-                    {/* Global Error Alert */}
+                    {/* Error Alert */}
                     {error && (
                         <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                             {error}
@@ -123,29 +92,33 @@ export default function CreateTicketPage() {
                     )}
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <Box component="form" onSubmit={handleSubmit(onSubmit)}>
                         <Stack spacing={3}>
                             {/* Subject Field */}
                             <Box>
+                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                                    <SubjectIcon color="primary" />
+                                    <Typography variant="subtitle1" fontWeight={600}>
+                                        נושא הפניה
+                                    </Typography>
+                                </Stack>
                                 <TextField
-                                    id="subject"
-                                    label="נושא הפניה"
                                     fullWidth
-                                    {...register('subject', { 
-                                        required: "נושא הוא שדה חובה",
-                                        minLength: { value: 5, message: "הנושא חייב להכיל לפחות 5 תווים" }
-                                    })}
+                                    id="subject"
+                                    placeholder="לדוגמה: בעיה בהתחברות למערכת"
+                                    disabled={loading}
+                                    {...register('subject', { required: "נושא הפניה הוא שדה חובה" })}
                                     error={!!errors.subject}
                                     helperText={errors.subject?.message}
-                                    placeholder="למשל: בעיה בהתחברות למערכת"
                                     sx={{
                                         '& .MuiOutlinedInput-root': {
                                             borderRadius: 2,
-                                            bgcolor: 'background.paper',
+                                            transition: 'all 0.3s ease',
                                             '&:hover': {
-                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: 'primary.main'
-                                                }
+                                                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)'
+                                            },
+                                            '&.Mui-focused': {
+                                                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.25)'
                                             }
                                         }
                                     }}
@@ -154,108 +127,111 @@ export default function CreateTicketPage() {
 
                             {/* Description Field */}
                             <Box>
+                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                                    <DescriptionIcon color="primary" />
+                                    <Typography variant="subtitle1" fontWeight={600}>
+                                        תיאור מפורט
+                                    </Typography>
+                                </Stack>
                                 <TextField
-                                    id="description"
-                                    label="תיאור מפורט"
                                     fullWidth
+                                    id="description"
+                                    placeholder="תאר את הבעיה בפירוט..."
                                     multiline
-                                    rows={8}
-                                    {...register('description', { 
-                                        required: "תיאור הוא שדה חובה",
-                                        minLength: { value: 10, message: "התיאור חייב להכיל לפחות 10 תווים" }
-                                    })}
+                                    rows={6}
+                                    disabled={loading}
+                                    {...register('description', { required: "תיאור הפניה הוא שדה חובה" })}
                                     error={!!errors.description}
-                                    helperText={errors.description?.message || "תאר את הבעיה בפירוט רב ככל האפשר"}
-                                    placeholder="תאר את הבעיה או השאלה שלך בפירוט..."
+                                    helperText={errors.description?.message}
                                     sx={{
                                         '& .MuiOutlinedInput-root': {
                                             borderRadius: 2,
-                                            bgcolor: 'background.paper',
+                                            transition: 'all 0.3s ease',
                                             '&:hover': {
-                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: 'primary.main'
-                                                }
+                                                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)'
+                                            },
+                                            '&.Mui-focused': {
+                                                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.25)'
                                             }
                                         }
                                     }}
                                 />
                             </Box>
 
-                            {/* Info Box */}
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    p: 2,
-                                    bgcolor: 'info.lighter',
-                                    border: '1px solid',
-                                    borderColor: 'info.light',
-                                    borderRadius: 2
-                                }}
-                            >
-                                <Stack direction="row" alignItems="center" spacing={1}>
-                                    <DescriptionIcon sx={{ color: 'info.main', fontSize: 20 }} />
-                                    <Typography variant="body2" color="info.dark">
-                                        הטיקט ישויך אוטומטית לנציג זמין ויטופל בהקדם האפשרי
-                                    </Typography>
-                                </Stack>
-                            </Paper>
-
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                variant="contained"
-                                size="large"
                                 fullWidth
+                                variant="contained"
+                                size="medium"
                                 disabled={loading}
-                                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                                startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <AddIcon />}
                                 sx={{
-                                    py: 1.5,
                                     borderRadius: 2,
-                                    fontSize: '1.1rem',
-                                    fontWeight: 700,
+                                    padding: '12px',
+                                    fontSize: 15,
+                                    fontWeight: 600,
                                     textTransform: 'none',
-                                    background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
-                                    boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    boxShadow: '0 6px 18px rgba(102, 126, 234, 0.3)',
+                                    transition: 'all 0.3s ease',
                                     '&:hover': {
-                                        background: 'linear-gradient(45deg, #5568d3 30%, #63408a 90%)',
-                                        boxShadow: '0 6px 25px rgba(102, 126, 234, 0.5)',
-                                        transform: 'translateY(-2px)'
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)'
                                     },
-                                    '&:disabled': {
-                                        background: 'linear-gradient(45deg, #667eea70 30%, #764ba270 90%)'
-                                    },
-                                    transition: 'all 0.3s ease'
+                                    '&:active': {
+                                        transform: 'translateY(0)'
+                                    }
                                 }}
                             >
-                                {loading ? 'יוצר טיקט...' : 'שלח פניה'}
+                                {loading ? 'שולח פניה...' : 'שלח פניה'}
                             </Button>
 
                             {/* Cancel Button */}
                             <Button
-                                variant="outlined"
-                                size="large"
                                 fullWidth
-                                onClick={() => navigate('/tickets')}
+                                variant="outlined"
+                                size="medium"
                                 disabled={loading}
+                                onClick={() => navigate('/tickets')}
                                 sx={{
-                                    py: 1.5,
                                     borderRadius: 2,
-                                    fontSize: '1rem',
+                                    padding: '10px',
+                                    fontSize: 14,
                                     fontWeight: 600,
                                     textTransform: 'none',
-                                    borderWidth: 2,
+                                    borderColor: 'primary.main',
+                                    color: 'primary.main',
                                     '&:hover': {
-                                        borderWidth: 2,
-                                        bgcolor: 'action.hover'
+                                        borderColor: 'primary.dark',
+                                        bgcolor: 'rgba(102, 126, 234, 0.04)'
                                     }
                                 }}
                             >
                                 ביטול
                             </Button>
                         </Stack>
-                    </form>
+                    </Box>
+                </Paper>
+
+                {/* Info Box */}
+                <Paper
+                    elevation={0}
+                    sx={{
+                        mt: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: 'info.light',
+                        border: '1px solid',
+                        borderColor: 'info.main'
+                    }}
+                >
+                    <Typography variant="caption" color="info.dark" sx={{ fontWeight: 500 }}>
+                        💡 <strong>טיפ:</strong> ככל שהתיאור יהיה מפורט יותר, כך נוכל לטפל בבעיה שלך מהר יותר!
+                    </Typography>
                 </Paper>
             </Container>
         </Box>
     );
+
 }

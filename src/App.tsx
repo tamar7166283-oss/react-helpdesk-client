@@ -1,14 +1,11 @@
 import './App.css'
-import AppRouter from './components/AppRouter'
-import Header from './components/Header'
+import AppRouter from './components/AppRouter';
 
 function App() {
   return (
     <>
-    <Header />
-      <AppRouter />
+   <AppRouter />
     </>
   )
 }
-
 export default App

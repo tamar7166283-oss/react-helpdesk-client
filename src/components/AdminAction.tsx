@@ -1,20 +1,20 @@
 import { useSelector,useDispatch } from "react-redux"
 import type { AppDispatch, RootState } from "../store"
 import type User from "../types/users"
-import { updateTicket } from "../store/ticketsSlice"
+import { fetchPriorities, updateTicket } from "../store/ticketsSlice"
 import { useEffect } from "react"
 import { fetchUsers } from "../store/usersSlice"
-import Swal from 'sweetalert2'
+import LoadingSpinner from "./LoadingSpinner"
 import {
+    Box,
     FormControl,
     InputLabel,
     Select,
     MenuItem,
-    CircularProgress,
-    Box,
-    Chip
-} from '@mui/material';
-import { PersonAdd as PersonAddIcon } from '@mui/icons-material';
+    Stack
+} from '@mui/material'
+import { AssignmentInd as AssignIcon, Flag as PriorityIcon } from '@mui/icons-material'
+import { showSuccessToast } from "../utils/sweetAlertUtils"
 
 interface AdminActionProps{
     idT:number
@@ -23,114 +23,179 @@ interface AdminActionProps{
 export function AdminAction({idT}: AdminActionProps){ 
     const dispatch = useDispatch<AppDispatch>();
 
-    const handleAssign = async (event: React.ChangeEvent<{ value: unknown }>) => {
-        const agentId = Number(event.target.value);
-        const selectedAgent = agents.find(agent => agent.id === agentId);
-        
-        if (!selectedAgent) return;
+    const handleAssign = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+       await dispatch(updateTicket({id:idT, data: {assigned_to:Number(event.target.value)}}))
+       showSuccessToast('הסוכן הוקצה בהצלחה!');
+    }
 
-        // הצגת אישור עם SweetAlert
-        const result = await Swal.fire({
-            title: 'האם אתה בטוח?',
-            html: `להקצות טיקט זה ל<strong>${selectedAgent.name}</strong>?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#667eea',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'כן, הקצה!',
-            cancelButtonText: 'ביטול',
-            reverseButtons: true
-        });
+    const handlePriorityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        dispatch(updateTicket({ id: idT, data: { priority_id: Number(event.target.value) } }))
+    }
 
-        if (result.isConfirmed) {
-            try {
-                await dispatch(updateTicket({id:idT, data: {assigned_to: agentId}})).unwrap();
-                
-                // הודעת הצלחה
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: `הטיקט הוקצה ל-${selectedAgent.name}`,
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true
-                });
-            } catch (error) {
-                // הודעת שגיאה
-                Swal.fire({
-                    icon: 'error',
-                    title: 'שגיאה!',
-                    text: 'לא ניתן להקצות את הטיקט. נסה שוב.',
-                    confirmButtonColor: '#667eea'
-                });
-            }
-        }
-    };
-
-    useEffect(()=>{
+    useEffect(() => {
+        if(priorities.length === 0)
+        dispatch(fetchPriorities());
+        if(users.length === 0)
         dispatch(fetchUsers());
-    },[dispatch,idT])
+    }, [dispatch, idT])
 
-    const {users, loading:userLoading}=useSelector((state:RootState)=>state.users)
-    const agents=users.filter((user:User)=>user.role==='agent');
-    const {selectedTicket,loading:ticketLoading, updateLoading}=useSelector((state:RootState)=>state.tickets);
-    
-    if(ticketLoading){
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <CircularProgress size={24} />
-            </Box>
-        );
+    const {users, loading: userLoading} = useSelector((state:RootState) => state.users)
+    const agents = users.filter((user:User) => user.role === 'agent');
+    const {priorities, priorityLoading, selectedTicket, loading: ticketLoading} = useSelector((state:RootState) => state.tickets);
+
+    if(userLoading || priorityLoading || ticketLoading || !selectedTicket){
+        return <LoadingSpinner />;
     }
 
     return(
-        <FormControl 
-            fullWidth 
-            variant="outlined"
-            disabled={updateLoading || userLoading}
-            sx={{ minWidth: 250 }}
-        >
-            <InputLabel id="assign-agent-label">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonAddIcon fontSize="small" />
-                    הקצה סוכן
-                </Box>
-            </InputLabel>
-            <Select
-                labelId="assign-agent-label"
-                value={selectedTicket?.assigned_to || ""}
-                onChange={handleAssign}
-                label="הקצה סוכן"
-                sx={{
-                    '& .MuiOutlinedInput-notchedOutline': {
-                        borderWidth: 2,
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'primary.main',
-                    }
-                }}
-            >
-                <MenuItem value="" disabled>
-                    <em>בחר סוכן להקצאה</em>
-                </MenuItem>
-                {agents.map((agent:User) => (
-                    <MenuItem key={agent.id} value={agent.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip 
-                                label={agent.name} 
-                                size="small"
-                                color={selectedTicket?.assigned_to === agent.id ? "primary" : "default"}
-                            />
-                            <span style={{ fontSize: '0.875rem', color: '#666' }}>
-                                {agent.email}
-                            </span>
-                        </Box>
-                    </MenuItem>
-                ))}
-            </Select>
-        </FormControl>
-    );
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flex: 1 }}>
+            {/* הקצאה לסוכן */}
+            <Box sx={{ flex: 1 }}>
+                <FormControl fullWidth>
+                    <InputLabel 
+                        id="agent-select-label"
+                        sx={{ 
+                            right: '14px !important',
+                            left: 'unset !important',
+                            transformOrigin: 'top right !important',
+                            fontFamily: '"Assistant", "Roboto", sans-serif',
+                            '&.MuiInputLabel-shrink': {
+                                transform: 'translate(0, -9px) scale(0.75) !important'
+                            }
+                        }}
+                    >
+                        הקצאה לסוכן
+                    </InputLabel>
+                    <Select
+                        labelId="agent-select-label"
+                        value={selectedTicket?.assigned_to || ""}
+                        onChange={(e) => handleAssign(e as any)}
+                        label="הקצאה לסוכן"
+                        startAdornment={<AssignIcon sx={{ mr: 1, color: '#667eea', fontSize: 20 }} />}
+                        displayEmpty
+                        sx={{
+                            minHeight: '56px !important',
+                            borderRadius: '8px !important',
+                            bgcolor: '#f9fafb !important',
+                            fontFamily: '"Assistant", "Roboto", sans-serif',
+                            '& fieldset': {
+                                borderColor: '#e2e8f0 !important',
+                            },
+                            '&:hover fieldset': {
+                                borderColor: '#667eea !important',
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#667eea !important',
+                                borderWidth: '2px !important'
+                            },
+                            '& .MuiSelect-select': {
+                                textAlign: 'right !important',
+                                padding: '16px 14px !important',
+                                display: 'flex !important',
+                                alignItems: 'center !important'
+                            }
+                        }}
+                    >
+                        <MenuItem 
+                            value="" 
+                            disabled 
+                            sx={{ 
+                                justifyContent: 'flex-end',
+                                fontFamily: '"Assistant", "Roboto", sans-serif'
+                            }}
+                        >
+                            <em>בחר סוכן להקצאה</em>
+                        </MenuItem>
+                        {agents.map((agent:User) => (
+                            <MenuItem 
+                                key={agent.id} 
+                                value={agent.id} 
+                                sx={{ 
+                                    justifyContent: 'flex-end',
+                                    fontFamily: '"Assistant", "Roboto", sans-serif'
+                                }}
+                            >
+                                {agent.name}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
+
+            {/* שינוי עדיפות */}
+            <Box sx={{ flex: 1 }}>
+                <FormControl fullWidth>
+                    <InputLabel 
+                        id="priority-select-label"
+                        sx={{ 
+                            right: '14px !important',
+                            left: 'unset !important',
+                            transformOrigin: 'top right !important',
+                            fontFamily: '"Assistant", "Roboto", sans-serif',
+                            '&.MuiInputLabel-shrink': {
+                                transform: 'translate(0, -9px) scale(0.75) !important'
+                            }
+                        }}
+                    >
+                        שינוי עדיפות
+                    </InputLabel>
+                    <Select
+                        labelId="priority-select-label"
+                        value={selectedTicket?.priority_id || ""}
+                        onChange={(e) => handlePriorityChange(e as any)}
+                        label="שינוי עדיפות"
+                        startAdornment={<PriorityIcon sx={{ mr: 1, color: '#667eea', fontSize: 20 }} />}
+                        displayEmpty
+                        sx={{
+                            minHeight: '56px !important',
+                            borderRadius: '8px !important',
+                            bgcolor: '#f9fafb !important',
+                            fontFamily: '"Assistant", "Roboto", sans-serif',
+                            '& fieldset': {
+                                borderColor: '#e2e8f0 !important',
+                            },
+                            '&:hover fieldset': {
+                                borderColor: '#667eea !important',
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#667eea !important',
+                                borderWidth: '2px !important'
+                            },
+                            '& .MuiSelect-select': {
+                                textAlign: 'right !important',
+                                padding: '16px 14px !important',
+                                display: 'flex !important',
+                                alignItems: 'center !important'
+                            }
+                        }}
+                    >
+                        <MenuItem 
+                            value="" 
+                            disabled 
+                            sx={{ 
+                                justifyContent: 'flex-end',
+                                fontFamily: '"Assistant", "Roboto", sans-serif'
+                            }}
+                        >
+                            <em>קבע עדיפות</em>
+                        </MenuItem>
+                        {priorities.map((p) => (
+                            <MenuItem 
+                                key={p.id} 
+                                value={p.id} 
+                                sx={{ 
+                                    justifyContent: 'flex-end',
+                                    fontFamily: '"Assistant", "Roboto", sans-serif'
+                                }}
+                            >
+                                {p.name}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
+        </Stack>
+    )
 }
 
 export default AdminAction;

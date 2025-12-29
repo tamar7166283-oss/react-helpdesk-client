@@ -5,20 +5,25 @@ import { useDispatch } from 'react-redux';
 import { setCredentials} from '../store/authSlice';
 import { AxiosError } from 'axios';
 import type { LocationState } from './SignupPage';
-import './authPages.css';
 import { useForm } from 'react-hook-form';
-import { 
-    Box, 
-    Container, 
-    TextField, 
-    Button, 
-    Typography, 
-    Paper, 
+import { showErrorAlert, COMMON_ERRORS } from '../utils/sweetAlertUtils';
+import {
+    Box,
+    Container,
+    Paper,
+    Typography,
+    TextField,
+    Button,
     Alert,
     InputAdornment,
     CircularProgress
 } from '@mui/material';
-import { Email, Lock, Login as LoginIcon } from '@mui/icons-material';
+import {
+    Login as LoginIcon,
+    Email,
+    Lock
+} from '@mui/icons-material';
+import './authPages.css';
 
 interface FormValue {
     email: string;
@@ -49,23 +54,24 @@ export default function LoginPage() {
        }
        catch(error){
         if(error instanceof AxiosError) {
-            setError(error.response?.data?.message);
+            const errorMessage = error.response?.data?.message || "שם משתמש או סיסמה שגויים";
+            showErrorAlert('שגיאת התחברות', errorMessage);
        }  else {
-        setError("Login failed");
+            showErrorAlert('שגיאה', COMMON_ERRORS.UNKNOWN_ERROR);
        }
     } finally {
         setLoading(false);
     }
 }
 
-    return(
+    return (
         <Box className="auth-container">
             <Box className="auth-background">
                 <Box className="shape shape-1" />
                 <Box className="shape shape-2" />
                 <Box className="shape shape-3" />
             </Box>
-            
+
             <Container maxWidth="sm">
                 <Paper elevation={10} className="auth-card">
                     <Box className="auth-header">
@@ -93,7 +99,7 @@ export default function LoginPage() {
                             label="כתובת אימייל"
                             type="email"
                             disabled={loading}
-                            {...register('email', { 
+                            {...register('email', {
                                 required: "כתובת אימייל נדרשת",
                                 pattern: {
                                     value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -148,14 +154,12 @@ export default function LoginPage() {
                         <Typography variant="body2" color="text.secondary">
                             אין לך חשבון?
                         </Typography>
-                        <Link to="/signup" state={{from:typedstate?.from}} className="auth-link">
+                        <Link to="/signup" state={{ from: typedstate?.from }} className="auth-link">
                             הירשם עכשיו
                         </Link>
                     </Box>
                 </Paper>
             </Container>
         </Box>
-    )
+    );
 }
-
-

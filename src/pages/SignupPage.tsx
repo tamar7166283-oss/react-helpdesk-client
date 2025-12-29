@@ -5,19 +5,25 @@ import { AxiosError } from 'axios';
 import authService from '../services/authService';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import './authPages.css';
-import { 
-    Box, 
-    Container, 
-    TextField, 
-    Button, 
-    Typography, 
-    Paper, 
+import { showSuccessToast, showErrorAlert, COMMON_ERRORS } from '../utils/sweetAlertUtils';
+import {
+    Box,
+    Container,
+    Paper,
+    Typography,
+    TextField,
+    Button,
     Alert,
     InputAdornment,
     CircularProgress
 } from '@mui/material';
-import { PersonAdd, Email, Lock, Person } from '@mui/icons-material';
+import {
+    PersonAdd,
+    Person,
+    Email,
+    Lock
+} from '@mui/icons-material';
+import './authPages.css';
 
 export interface LocationState {
     from?: {
@@ -40,7 +46,6 @@ export default function SignupPage() {
     const location = useLocation();
 
     const typedstate  = location.state as LocationState;
-    const destinationPath = typedstate?.from?.pathname || "/dashboard";
 
     const onRegister = async (data: {name:string; email:string; password:string;}) => {
          setError("");
@@ -48,28 +53,37 @@ export default function SignupPage() {
        try{
         const response = await authService.register(data.email, data.password, data.name);
         dispatch(setCredentials(response));
-        navigate(destinationPath, { replace: true });
+        console.log("Registration successful:", response);
+        
+        // Toast שנעלם אוטומטית
+        showSuccessToast('ההרשמה הושלמה בהצלחה!', 'ברוך הבא למערכת');
+        
+        // המתן רגע קצר ואז נווט
+        setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+        }, 1500);
        }
        catch(error){
         if(error instanceof AxiosError) {
-            setError(error.response?.data?.message);
+            const errorMessage = error.response?.data?.message || "ההרשמה נכשלה";
+            showErrorAlert('שגיאה בהרשמה', errorMessage);
        }
         else {
-        setError("Local JavaScript error"+(error as Error).message);
+            showErrorAlert('שגיאה', COMMON_ERRORS.UNKNOWN_ERROR);
        }
     }
     finally {
         setLoading(false);}
     };
 
-    return(
+     return (
         <Box className="auth-container">
             <Box className="auth-background">
                 <Box className="shape shape-1" />
                 <Box className="shape shape-2" />
                 <Box className="shape shape-3" />
             </Box>
-            
+
             <Container maxWidth="sm">
                 <Paper elevation={10} className="auth-card">
                     <Box className="auth-header">
@@ -116,7 +130,7 @@ export default function SignupPage() {
                             label="כתובת אימייל"
                             type="email"
                             disabled={loading}
-                            {...register('email', { 
+                            {...register('email', {
                                 required: "כתובת אימייל נדרשת",
                                 pattern: {
                                     value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -171,14 +185,12 @@ export default function SignupPage() {
                         <Typography variant="body2" color="text.secondary">
                             כבר יש לך חשבון?
                         </Typography>
-                        <Link to="/login" state={{from:typedstate?.from}} className="auth-link">
+                        <Link to="/login" state={{ from: typedstate?.from }} className="auth-link">
                             התחבר כאן
                         </Link>
                     </Box>
                 </Paper>
             </Container>
         </Box>
-    )
+    );
 }
-
-
